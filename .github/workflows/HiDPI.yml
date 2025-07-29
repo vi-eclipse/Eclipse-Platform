@@ -1,0 +1,33 @@
+# .github/workflows/remove-assignee-on-column-move.yml
+name: Remove assignee on move to Done column
+
+on:
+  project_card:
+    types: [moved]
+
+jobs:
+  remove-assignee:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove assignee if card moved to Done
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const columnId = context.payload.project_card.column_id;
+            const card = context.payload.project_card;
+
+            // Replace this with your actual "Done" column ID
+            const DONE_COLUMN_ID = "5c3e7176";
+
+            if (columnId === DONE_COLUMN_ID && card.content_url) {
+              const issueMatch = card.content_url.match(/issues\/(\d+)$/);
+              if (issueMatch) {
+                const issueNumber = issueMatch[1];
+                await github.rest.issues.removeAssignees({
+                  ...context.repo,
+                  issue_number: issueNumber,
+                  assignees: context.payload.project_card.creator.login ? [context.payload.project_card.creator.login] : [],
+                });
+              }
+            }
